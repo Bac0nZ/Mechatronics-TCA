@@ -1,0 +1,98 @@
+#include <Adafruit_NeoPixel.h>
+
+#define PIN 2
+#define NUMPIXELS 8
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+// Potentiometers
+const int DelayPin = A1;
+const int BrightnessPin = A2;
+const int ColorPin = A3;
+
+// Slide switch pin
+const int SwitchPin = 7;
+
+uint32_t currentColor;
+
+void setup() {
+
+  pixels.begin();
+
+  Serial.begin(9600);
+
+  // Use internal pull-up resistor
+  pinMode(SwitchPin, INPUT_PULLUP);
+
+  randomSeed(analogRead(A0));
+}
+
+void loop() {
+
+  // Speed
+  int delayRead = analogRead(DelayPin);
+  int delayval = map(delayRead, 0, 1023, 10, 100);
+
+  // Brightness
+  int brightRead = analogRead(BrightnessPin);
+  int brightness = map(brightRead, 0, 1023, 0, 255);
+
+  pixels.setBrightness(brightness);
+
+  // Switch Mode
+  bool randomMode = digitalRead(SwitchPin);
+
+  // OPEN switch = HIGH = random colors
+  if (randomMode == HIGH) {
+
+    currentColor = pixels.Color(
+      random(0, 255),
+      random(0, 255),
+      random(0, 255)
+    );
+
+  }
+  else {
+
+    // CLOSED switch = LOW = potentiometer color control
+
+    int colorRead = analogRead(ColorPin);
+
+    int colorPos = map(colorRead, 0, 1023, 0, 255);
+
+    currentColor = Wheel(colorPos);
+  }
+
+  // Display Pixels
+
+  for (int i = 0; i < NUMPIXELS; i++) {
+
+    pixels.setPixelColor(i, currentColor);
+
+    pixels.show();
+
+    delay(delayval);
+  }
+}
+
+// Rainbow Colour Wheel
+
+uint32_t Wheel(byte WheelPos) {
+
+  WheelPos = 255 - WheelPos;
+
+  if (WheelPos < 85) {
+    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+
+  if (WheelPos < 170) {
+
+    WheelPos -= 85;
+
+    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+
+  WheelPos -= 170;
+
+  return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
