@@ -1,0 +1,75 @@
+#include <LiquidCrystal_I2C.h> //required library 
+
+LiquidCrystal_I2C lcd(0x20, 16, 2); //(Address,Column,Row)
+
+#define echoPin 2 // Connect echoPin to D2 pin of arduino
+#define trigPin 3 // Connect trigPin to D3 pin of arduino
+#define buzzerPin 7 // Buzzer connected to pin 7
+
+long duration;
+int distance;
+
+// Variables for buzzer timing
+unsigned long lastBeepTime = 0;
+int beepInterval = 0;
+
+void setup()
+{
+  lcd.init();
+  lcd.backlight();
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+  Serial.begin(9600); 
+  delay(500);
+}
+
+void loop()
+{
+  // Ultra sonic sensor
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration * 0.0344 / 2;
+  
+  // Limit distance range for mapping (0cm to 200cm)
+  int limitedDistance = constrain(distance, 0, 200);
+  
+  // Map distance to beep interval:
+  // 0cm (closest) = 50ms (very fast beeping)
+  // 200cm (farthest) = 1500ms (slow beeping)
+  beepInterval = map(limitedDistance, 10, 100, 50, 1500);
+  
+  // Handle the beeping
+  unsigned long currentTime = millis();
+  
+  if (currentTime - lastBeepTime >= beepInterval) {
+    lastBeepTime = currentTime;
+    
+    tone(buzzerPin, 1000, 100);
+  }
+  
+  // LCD Display
+  lcd.setCursor(0, 0);
+  if(distance < 30) {
+    lcd.clear();
+    lcd.print("STOP!");
+  }
+  else if(distance < 100) {
+    lcd.clear();
+    lcd.print("Warning");
+  }
+  else {
+    lcd.print("All Clear");
+  }
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Dist:");
+  lcd.print(distance);
+  lcd.print("cm");
+  
+  delay(100);
+}
