@@ -1,0 +1,55 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const int ThrottlePin = A1;
+const int PWMpin = 3;
+
+// Motor and wheel parameters
+const float MAX_RPM = 2000.0;
+const float WHEEL_DIAMETER_INCHES = 15.0; // Standard small car
+const float INCHES_PER_MILE = 63360.0;
+
+int ThrottleValue = 0;
+float currentMPH = 0.0;
+
+void setup() {
+  pinMode(PWMpin, OUTPUT);
+  lcd.init();
+  lcd.backlight();
+  Serial.begin(9600);
+}
+
+void loop() {
+  int sensorValue = analogRead(ThrottlePin);
+  
+  // Map 0-1023 to 0-100 PWM range
+  int pwmValue = map(sensorValue, 0, 1023, 0, 100);
+  
+  // Calculate throttle percentage (0-100%)
+  ThrottleValue = map(sensorValue, 0, 1023, 0, 100);
+  
+  // Calculate current RPM based on throttle position
+  float currentRPM = (ThrottleValue / 100.0) * MAX_RPM;
+  
+  // Calculate speed: MPH = (RPM * wheel circumference in inches) / inches per mile * 60
+  float wheelCircumferenceInches = PI * WHEEL_DIAMETER_INCHES;
+  currentMPH = (currentRPM * wheelCircumferenceInches * 60.0) / INCHES_PER_MILE;
+  
+  // Apply PWM output to motor
+  analogWrite(PWMpin, pwmValue);
+  
+  // Update LCD Display
+  lcd.setCursor(0, 0);
+  lcd.print("Throttle: ");
+  lcd.print(ThrottleValue);
+  lcd.print("%   ");
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Speed: ");
+  lcd.print(currentMPH, 1);
+  lcd.print(" MPH");
+  
+  delay(50);
+}
